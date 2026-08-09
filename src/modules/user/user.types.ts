@@ -1,6 +1,6 @@
 import z from "zod";
 import { UserRole } from "./user.model.js";
-import { updateUserSchema } from "./user.validation.js";
+import { updateSelfSchema, updateUserSchema } from "./user.validation.js";
 
 export type UserResponse = {
   id: string;
@@ -13,3 +13,5 @@ export type UserResponse = {
 };
 
 export type UpdateUserBody = z.infer<typeof updateUserSchema>;
+
+export type UpdateSelfBody = z.infer<typeof updateSelfSchema>;

@@ -8,9 +8,9 @@ export enum UserRole {
 
 export interface IUser {
   name: string;
-  email: string;
+  email?: string;
   password: string;
-  phone?: string;
+  phone: string;
   isPhoneVerified: boolean;
   role: UserRole;
   isActive: boolean;
@@ -25,8 +25,8 @@ const userSchema = new Schema<IUser>(
     },
     email: {
       type: String,
-      required: true,
       unique: true,
+      sparse: true,
       lowercase: true,
       trim: true,
     },
@@ -37,6 +37,7 @@ const userSchema = new Schema<IUser>(
     },
     phone: {
       type: String,
+      required: true,
       unique: true,
       trim: true,
       sparse: true,

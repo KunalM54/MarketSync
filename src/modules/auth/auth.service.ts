@@ -2,6 +2,7 @@ import { User, UserRole } from "../user/user.model.js";
 import type { RegisterUserDto } from "./dto/register.dto.js";
 import { AppError } from "../../utils/AppError.js";
 import { comparePassword, hashPassword } from "../../utils/password.js";
+import { env } from "../../config/env.js";
 import type { LoginDto } from "./dto/login.dto.js";
 import { createUser } from "../user/user.service.js";
 import { buildUserResponse } from "../user/user.mapper.js";
@@ -21,18 +22,22 @@ export const registerUser = async (userData: RegisterUserDto) => {
 };
 
 export const loginUser = async (loginDto: LoginDto) => {
-  const { email, password } = loginDto;
+  const { identifier, password } = loginDto;
 
-  const user = await User.findOne({ email }).select("+password");
+  const isEmail = z.string().email().safeParse(identifier).success;
+
+  const user = isEmail
+    ? await User.findOne({ email: identifier.toLowerCase() }).select("+password")
+    : await User.findOne({ phone: identifier }).select("+password");
 
   if (!user) {
-    throw new AppError(401, "Invalid email or password");
+    throw new AppError(401, "Invalid phone number or password");
   }
 
   const isPasswordValid = await comparePassword(password, user.password);
 
   if (!isPasswordValid) {
-    throw new AppError(401, "Invalid email or password");
+    throw new AppError(401, "Invalid phone number or password");
   }
 
   if (!user.isActive) {
@@ -81,6 +86,8 @@ export const sendPhoneOtp = async (userId: string) => {
 
   return {
     message: "OTP sent successfully",
+    // Return the code in dev so the demo works without real SMS delivery.
+    devOtp: env.NODE_ENV !== "production" ? otp : undefined,
   };
 };
 
@@ -165,6 +172,8 @@ export const forgotPassword = async (identifier: string) => {
 
     return {
       message: "If an account exists, a reset link has been sent.",
+      // Return the token in dev so the demo works without an email provider.
+      devToken: env.NODE_ENV !== "production" ? resetToken : undefined,
     };
   } else {
     const otp = generateOtp();
@@ -182,8 +191,69 @@ export const forgotPassword = async (identifier: string) => {
 
     return {
       message: "If an account exists, an OTP has been sent.",
+      // Return the OTP in dev so the demo works without real SMS delivery.
+      devOtp: env.NODE_ENV !== "production" ? otp : undefined,
     };
   }
+};
+
+export const verifyResetOtp = async (identifier: string, otp: string) => {
+  const isEmail = z.string().email().safeParse(identifier).success;
+
+  if (isEmail) {
+    throw new AppError(400, "Reset by phone number only");
+  }
+
+  const user = await User.findOne({ phone: identifier });
+
+  if (!user) {
+    throw new AppError(400, "Invalid or expired OTP");
+  }
+
+  const phoneOtp = await PhoneOtp.findOne({ phone: identifier });
+
+  if (!phoneOtp) {
+    throw new AppError(400, "Invalid or expired OTP");
+  }
+
+  if (phoneOtp.expiresAt < new Date()) {
+    await PhoneOtp.deleteOne({ phone: identifier });
+    throw new AppError(400, "OTP has expired");
+  }
+
+  if (phoneOtp.otp !== otp) {
+    throw new AppError(400, "Invalid OTP");
+  }
+
+  await PhoneOtp.deleteOne({ phone: identifier });
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+  await PasswordReset.findOneAndUpdate(
+    { userId: user._id },
+    {
+      token: hashedToken,
+      expiresAt,
+    },
+    {
+      upsert: true,
+      returnDocument: "after",
+    },
+  );
+
+  console.log("Password Reset Token for", user.phone, ":", resetToken);
+
+  return {
+    message: "OTP verified. You can now set a new password.",
+    resetToken,
+  };
 };
 
 export const resetPassword = async (
@@ -194,20 +264,16 @@ export const resetPassword = async (
   const isEmail = z.string().email().safeParse(identifier).success;
 
   const user = isEmail
-    ? await User.findOne({ email: identifier }).select("+password")
+    ? await User.findOne({ email: identifier.toLowerCase() }).select("+password")
     : await User.findOne({ phone: identifier }).select("+password");
 
   if (!user) {
     throw new AppError(400, "Invalid or expired reset request");
   }
 
-  if (isEmail) {
-    const resetRecord = await PasswordReset.findOne({ userId: user._id });
+  const resetRecord = await PasswordReset.findOne({ userId: user._id });
 
-    if (!resetRecord) {
-      throw new AppError(400, "Invalid or expired reset request");
-    }
-
+  if (resetRecord) {
     if (resetRecord.expiresAt < new Date()) {
       await PasswordReset.deleteOne({ userId: user._id });
       throw new AppError(400, "Reset token has expired");
@@ -221,13 +287,7 @@ export const resetPassword = async (
     if (resetRecord.token !== hashedToken) {
       throw new AppError(400, "Invalid or expired reset request");
     }
-
-    const hashedPassword = await hashPassword(newPassword);
-    user.password = hashedPassword;
-    await user.save();
-
-    await PasswordReset.deleteOne({ userId: user._id });
-  } else {
+  } else if (!isEmail) {
     if (!user.phone) {
       throw new AppError(400, "No phone number on this account");
     }
@@ -246,11 +306,17 @@ export const resetPassword = async (
     if (phoneOtp.otp !== tokenOrOtp) {
       throw new AppError(400, "Invalid or expired reset request");
     }
+  } else {
+    throw new AppError(400, "Invalid or expired reset request");
+  }
 
-    const hashedPassword = await hashPassword(newPassword);
-    user.password = hashedPassword;
-    await user.save();
+  const hashedPassword = await hashPassword(newPassword);
+  user.password = hashedPassword;
+  await user.save();
 
+  if (resetRecord) {
+    await PasswordReset.deleteOne({ userId: user._id });
+  } else if (!isEmail) {
     await PhoneOtp.deleteOne({ phone: user.phone });
   }
 

@@ -9,7 +9,15 @@ export const createUserSchema = z.object({
     .min(3, "Name must be at least 3 characters long")
     .max(50, "Name cannot exceed 50 characters"),
 
-  email: z.string().trim().email("Please enter a valid email address"),
+  email: z
+    .preprocess(
+      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
+      z
+        .string()
+        .trim()
+        .email("Please enter a valid email address")
+        .optional(),
+    ),
 
   password: z
     .string()
@@ -24,8 +32,7 @@ export const createUserSchema = z.object({
     .regex(
       PHONE_REGEX,
       "Invalid phone number. Use E.164 format (e.g. +919876543210).",
-    )
-    .optional(),
+    ),
 });
 
 export type createUserDto = z.infer<typeof createUserSchema>;

@@ -1,36 +1,36 @@
-import { hashPassword } from "../../utils/password.js";
+import { comparePassword, hashPassword } from "../../utils/password.js";
 import { User } from "./user.model.js";
 import { AppError } from "../../utils/AppError.js";
 import type { createUserDto } from "./dto/create-user.dto.js";
 import { buildUserResponse } from "./user.mapper.js";
 import mongoose from "mongoose";
-import type { UpdateUserBody } from "./user.types.js";
+import type { UpdateSelfBody, UpdateUserBody } from "./user.types.js";
 
 export const createUser = async (userData: createUserDto) => {
-  const existingEmail = await User.findOne({
-    email: userData.email,
-  });
+  if (userData.email) {
+    const existingEmail = await User.findOne({
+      email: userData.email,
+    });
 
-  if (existingEmail) {
-    throw new AppError(409, "Email already exists");
+    if (existingEmail) {
+      throw new AppError(409, "Email already exists");
+    }
   }
 
-  if (userData.phone) {
-    const existingPhone = await User.findOne({ phone: userData.phone });
+  const existingPhone = await User.findOne({ phone: userData.phone });
 
-    if (existingPhone) {
-      throw new AppError(409, "Phone number already exists");
-    }
+  if (existingPhone) {
+    throw new AppError(409, "Phone number already exists");
   }
 
   const hashedPassword = await hashPassword(userData.password);
 
   const userPayload = {
     name: userData.name,
-    email: userData.email,
     password: hashedPassword,
     role: userData.role,
-    ...(userData.phone && { phone: userData.phone }),
+    phone: userData.phone,
+    ...(userData.email && { email: userData.email }),
   };
 
   const user = await User.create(userPayload);
@@ -102,6 +102,59 @@ export const updateUser = async (id: string, payload: UpdateUserBody) => {
 
   if (payload.isActive !== undefined) {
     user.isActive = payload.isActive;
+  }
+
+  await user.save();
+
+  return buildUserResponse(user);
+};
+
+export const updateSelf = async (userId: string, payload: UpdateSelfBody) => {
+  const user = await User.findById(userId).select("+password");
+
+  if (!user) {
+    throw new AppError(404, "User not found");
+  }
+
+  if (payload.email && payload.email !== user.email) {
+    const existingUser = await User.findOne({ email: payload.email });
+
+    if (existingUser) {
+      throw new AppError(409, "Email already exists");
+    }
+  }
+
+  if (payload.phone && payload.phone !== user.phone) {
+    const existingPhone = await User.findOne({ phone: payload.phone });
+
+    if (existingPhone) {
+      throw new AppError(409, "Phone number already exists");
+    }
+  }
+
+  if (payload.newPassword) {
+    const isValid = await comparePassword(payload.currentPassword!, user.password);
+
+    if (!isValid) {
+      throw new AppError(400, "Current password is incorrect");
+    }
+
+    user.password = await hashPassword(payload.newPassword);
+  }
+
+  if (payload.phone !== undefined) {
+    if (payload.phone !== user.phone) {
+      user.phone = payload.phone;
+      user.isPhoneVerified = false;
+    }
+  }
+
+  if (payload.name !== undefined) {
+    user.name = payload.name;
+  }
+
+  if (payload.email !== undefined) {
+    user.email = payload.email;
   }
 
   await user.save();

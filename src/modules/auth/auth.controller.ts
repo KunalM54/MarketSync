@@ -5,6 +5,7 @@ import {
   sendPhoneOtp,
   verifyPhoneOtp,
   forgotPassword,
+  verifyResetOtp,
   resetPassword,
 } from "./auth.service.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
@@ -71,7 +72,7 @@ export const sendPhoneOtpController = asyncHandler(async (req, res) => {
     statusCode: 200,
     success: true,
     message: result.message,
-    data: null,
+    data: result.devOtp ? { devOtp: result.devOtp } : null,
   });
 });
 
@@ -97,7 +98,21 @@ export const forgotPasswordController = asyncHandler(async (req, res) => {
     statusCode: 200,
     success: true,
     message: result.message,
-    data: null,
+    data:
+      result.devToken || result.devOtp
+        ? { devToken: result.devToken, devOtp: result.devOtp }
+        : null,
+  });
+});
+
+export const verifyResetOtpController = asyncHandler(async (req, res) => {
+  const result = await verifyResetOtp(req.body.identifier, req.body.otp);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: { resetToken: result.resetToken },
   });
 });
 

@@ -4,11 +4,12 @@ import {
   deleteUser,
   getAllUser,
   getUserById,
+  updateSelf,
 } from "./user.service.js";
 import { sendResponse } from "../../utils/response.js";
 import { request, type Request, type Response } from "express";
 import { updateUser } from "./user.service.js";
-import type { UpdateUserBody } from "./user.types.js";
+import type { UpdateSelfBody, UpdateUserBody } from "./user.types.js";
 
 type GetUserByIDParams = {
   id: string;
@@ -50,6 +51,21 @@ export const getUserByIdController = asyncHandler(
     });
   },
 );
+
+export const updateSelfController = asyncHandler<
+  {},
+  {},
+  UpdateSelfBody
+>(async (req, res) => {
+  const updatedUser = await updateSelf(req.user.userId, req.body);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Profile updated successfully.",
+    data: updatedUser,
+  });
+});
 
 export const updateUserController = asyncHandler<
   { id: string },

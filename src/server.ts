@@ -6,7 +6,7 @@ const startServer = async () => {
   try {
     await connectDatabase();
     app.listen(env.PORT, () => {
-      console.log(`Project run on Port : ${env.PORT}`);
+      console.log(`💎 Project run on Port : ${env.PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);

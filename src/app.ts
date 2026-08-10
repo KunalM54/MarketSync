@@ -1,4 +1,6 @@
 import express from "express";
+import cors from "cors";
+import { env } from "./config/env.js";
 import healthRoutes from './modules/health/health.routes.js'
 import authRoutes from './modules/auth/auth.routes.js'
 import { errorHandler } from "./middleware/errorHandler.js";
@@ -15,6 +17,15 @@ import orderRoutes from "./modules/order/order.routes.js"
 import uploadRoutes from "./modules/upload/upload.routes.js"
 
 const app = express()
+
+// Allow the frontend (dev: localhost:5173, prod: CLIENT_ORIGIN) to call this API
+// Credentials must be allowed so cookies can travel with cross-origin requests.
+app.use(
+  cors({
+    origin: env.CLIENT_ORIGIN,
+    credentials: true,
+  })
+);
 
 // Base64 image uploads need a larger body limit
 app.use(express.json({ limit: "10mb" }));

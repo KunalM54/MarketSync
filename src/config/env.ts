@@ -6,6 +6,7 @@ dotenv.config();
 export const env = {
     NODE_ENV : process.env.NODE_ENV!,
     PORT : Number(process.env.PORT) || 3000,
+    CLIENT_ORIGIN : process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
     MONGO_URI : process.env.MONGO_URI!,
     JWT_ACCESS_SECRET : process.env.JWT_ACCESS_SECRET!,
     JWT_ACCESS_EXPIRES_IN : process.env.JWT_ACCESS_EXPIRES_IN! as NonNullable<SignOptions["expiresIn"]>,

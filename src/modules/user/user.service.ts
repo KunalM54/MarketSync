@@ -7,16 +7,6 @@ import mongoose from "mongoose";
 import type { UpdateSelfBody, UpdateUserBody } from "./user.types.js";
 
 export const createUser = async (userData: createUserDto) => {
-  if (userData.email) {
-    const existingEmail = await User.findOne({
-      email: userData.email,
-    });
-
-    if (existingEmail) {
-      throw new AppError(409, "Email already exists");
-    }
-  }
-
   const existingPhone = await User.findOne({ phone: userData.phone });
 
   if (existingPhone) {
@@ -30,7 +20,6 @@ export const createUser = async (userData: createUserDto) => {
     password: hashedPassword,
     role: userData.role,
     phone: userData.phone,
-    ...(userData.email && { email: userData.email }),
   };
 
   const user = await User.create(userPayload);

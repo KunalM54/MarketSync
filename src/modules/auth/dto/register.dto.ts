@@ -8,16 +8,6 @@ export const registerSchema = z.object({
     .min(3, "Name must be at least 3 characters long")
     .max(50, "Name cannot exceed 50 characters"),
 
-  email: z
-    .preprocess(
-      (v) => (typeof v === "string" && v.trim() === "" ? undefined : v),
-      z
-        .string()
-        .trim()
-        .email("Please enter a valid email address")
-        .optional(),
-    ),
-
   password: z
     .string()
     .min(4, "Password must be at least 4 characters")

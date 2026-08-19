@@ -7,6 +7,7 @@ import type { LoginDto } from "./dto/login.dto.js";
 import { createUser } from "../user/user.service.js";
 import { buildUserResponse } from "../user/user.mapper.js";
 import { generateOtp } from "../../utils/otp.js";
+import { sendWhatsAppOtp } from "../../utils/twilio.js";
 import { PhoneOtp } from "../phoneOtp/phoneOtp.model.js";
 import crypto from "crypto";
 import { PasswordReset } from "./passwordReset.model.js";
@@ -82,12 +83,10 @@ export const sendPhoneOtp = async (userId: string) => {
     { upsert: true },
   );
 
-  console.log("User Phone No : ", user.phone, " and OTP is : ", otp);
+  await sendWhatsAppOtp(user.phone!, otp);
 
   return {
-    message: "OTP sent successfully",
-    // Return the code in dev so the demo works without real SMS delivery.
-    devOtp: env.NODE_ENV !== "production" ? otp : undefined,
+    message: "OTP sent to your WhatsApp",
   };
 };
 
@@ -167,8 +166,7 @@ export const forgotPassword = async (identifier: string) => {
       },
     );
 
-    console.log("Password Reset Token for", user.email, ":", resetToken);
-    console.log("Use POST /auth/reset-password with email + this token");
+
 
     return {
       message: "If an account exists, a reset link has been sent.",
@@ -186,13 +184,10 @@ export const forgotPassword = async (identifier: string) => {
       { upsert: true },
     );
 
-    console.log("Password Reset OTP for", user.phone, ":", otp);
-    console.log("Use POST /auth/reset-password with phone + this OTP");
+    await sendWhatsAppOtp(user.phone!, otp);
 
     return {
       message: "If an account exists, an OTP has been sent.",
-      // Return the OTP in dev so the demo works without real SMS delivery.
-      devOtp: env.NODE_ENV !== "production" ? otp : undefined,
     };
   }
 };
@@ -248,7 +243,7 @@ export const verifyResetOtp = async (identifier: string, otp: string) => {
     },
   );
 
-  console.log("Password Reset Token for", user.phone, ":", resetToken);
+
 
   return {
     message: "OTP verified. You can now set a new password.",

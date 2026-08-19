@@ -64,15 +64,13 @@ export const logout = asyncHandler(async (req, res) => {
 });
 
 export const sendPhoneOtpController = asyncHandler(async (req, res) => {
-  console.log(req.user);
-  console.log(req.user.userId);
   const result = await sendPhoneOtp(req.user.userId);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: result.message,
-    data: result.devOtp ? { devOtp: result.devOtp } : null,
+    data: null,
   });
 });
 
@@ -98,10 +96,7 @@ export const forgotPasswordController = asyncHandler(async (req, res) => {
     statusCode: 200,
     success: true,
     message: result.message,
-    data:
-      result.devToken || result.devOtp
-        ? { devToken: result.devToken, devOtp: result.devOtp }
-        : null,
+    data: result.devToken ? { devToken: result.devToken } : null,
   });
 });
 

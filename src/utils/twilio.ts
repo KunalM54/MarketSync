@@ -25,6 +25,6 @@ export const sendWhatsAppOtp = async (phone: string, otp: string): Promise<void>
   await twilioClient.messages.create({
     from: `whatsapp:${env.TWILIO_WHATSAPP_FROM}`,
     to: `whatsapp:${phone}`,
-    body: `Your CommerceX verification code is ${otp}. It expires in 5 minutes. Do not share this code with anyone.`,
+    body: `Your MarketSync verification code is ${otp}. It expires in 5 minutes. Do not share this code with anyone.`,
   });
 };

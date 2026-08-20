@@ -1,5 +1,5 @@
 {
-  "name": "commercex-backend",
+  "name": "marketsync-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github-personal:KunalM54/commercex-backend.git"
+    "url": "git@github-personal:KunalM54/marketsync-backend.git"
   },
   "keywords": [],
   "author": "",
@@ -26,6 +26,7 @@
     "imagekit": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^9.7.4",
+    "node-fetch": "^3.3.2",
     "razorpay": "^2.9.8",
     "twilio": "^6.1.0",
     "zod": "^4.4.3"

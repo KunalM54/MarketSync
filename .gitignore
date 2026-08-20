@@ -1,6 +1,5 @@
 node_modules
 
-.env
 
 dist
 
@@ -13,3 +12,4 @@ logs
 .vscode/settings.json
 
 RoadMap.txt
+config.bat

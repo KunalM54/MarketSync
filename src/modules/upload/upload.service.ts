@@ -83,7 +83,7 @@ export const uploadProductImage = async (payload: UploadImageDto) => {
     uploadResult = await getImageKit().upload({
       file: payload.file, // ImageKit accepts base64 data URLs directly
       fileName: `${sanitizedFileName}.${mime.split("/")[1] ?? "jpg"}`,
-      folder: "/commercex/products",
+      folder: "/marketsync/products",
       useUniqueFileName: true,
     });
   } catch (error: any) {
